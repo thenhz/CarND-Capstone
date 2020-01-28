@@ -1,34 +1,48 @@
-# Udacity capstone project dockerfile
-FROM ros:kinetic-robot
-LABEL maintainer="olala7846@gmail.com"
+FROM ubuntu:16.04
 
-# Install Dataspeed DBW https://goo.gl/KFSYi1 from binary
-# adding Dataspeed server to apt
-RUN sh -c 'echo "deb [ arch=amd64 ] http://packages.dataspeedinc.com/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-dataspeed-public.list'
-RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys FF6D3CDA
-RUN apt-get update
+LABEL maintainer="bydavy@gmail.com"
 
-# setup rosdep
-RUN sh -c 'echo "yaml http://packages.dataspeedinc.com/ros/ros-public-'$ROS_DISTRO'.yaml '$ROS_DISTRO'" > /etc/ros/rosdep/sources.list.d/30-dataspeed-public-'$ROS_DISTRO'.list'
+RUN sh -c 'echo "deb http://packages.ros.org/ros/ubuntu xenial main" > /etc/apt/sources.list.d/ros-latest.list' && \
+  apt-key adv --keyserver hkp://ha.pool.sks-keyservers.net:80 --recv-key 421C365BD9FF1F717815A3895523BAEEB01FA116 && \
+  apt-get update && \
+  apt-get install -y --allow-unauthenticated \
+    python-pip \
+    ros-kinetic-desktop-full && \
+
+# cleanup
+  apt-get clean && \
+  rm -rf \
+          /tmp/* \
+          /var/lib/apt/lists/* \
+          /var/tmp/*
+
+# Install dbw_mkz
+COPY dbw_mkz/* /tmp/
+RUN cd /tmp && ./sdk_update.bash && \
+  rm /tmp/sdk_update.bash /tmp/sdk_install.bash
+
+# Initialize rosdep
+RUN rosdep init
+
+# Install python dependencies
+ARG PYTHON_DEPS=requirements.txt
+COPY $PYTHON_DEPS /tmp/requirements.txt
+RUN pip install -r /tmp/requirements.txt && \
+  rm /tmp/requirements.txt
+
+# Create udacity user
+ARG C_UID=1000
+ARG C_GID=999
+RUN groupadd -g $C_GID udacity
+RUN useradd --create-home -u $C_UID -g $C_GID udacity
+
+COPY bashrc_udacity /home/udacity/.bashrc_udacity
+RUN echo "source /home/udacity/.bashrc_udacity" >> /home/udacity/.bashrc && \
+  echo "source /opt/ros/kinetic/setup.bash" >> /home/udacity/.bashrc
+
+VOLUME /udacity
+RUN chown udacity:udacity /udacity
+
+USER udacity:udacity
 RUN rosdep update
-RUN apt-get install -y ros-$ROS_DISTRO-dbw-mkz
-RUN apt-get upgrade -y
-# end installing Dataspeed DBW
-
-# install python packages
-RUN apt-get install -y python-pip
-COPY requirements.txt ./requirements.txt
-RUN pip install -r requirements.txt
-
-# install required ros dependencies
-RUN apt-get install -y ros-$ROS_DISTRO-cv-bridge
-RUN apt-get install -y ros-$ROS_DISTRO-pcl-ros
-RUN apt-get install -y ros-$ROS_DISTRO-image-proc
-
-# socket io
-RUN apt-get install -y netbase
-
-RUN mkdir /capstone
-VOLUME ["/capstone"]
-VOLUME ["/root/.ros/log/"]
-WORKDIR /capstone/ros
+WORKDIR /udacity
