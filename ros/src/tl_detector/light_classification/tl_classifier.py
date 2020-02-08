@@ -12,7 +12,7 @@ class TLClassifier(object):
     def __init__(self):
 
 	base_folder = os.path.dirname(os.path.realpath(__file__))
-        model_path = os.path.join('', '../../../models/kmd2/frozen_inference_graph.pb')
+        model_path = os.path.join('', '../../../models/final/frozen_inference_graph.pb')
 
 	self.graph = tf.Graph()
 
