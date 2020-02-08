@@ -16,7 +16,7 @@ from styx_msgs.msg import Lane, TrafficLightArray, TrafficLight
 STATE_COUNT_THRESHOLD = 3
 # Test mode uses "/vehicle/traffic_lightsTrue for Ground Truth Traffic Data
 # False for Model Prediction Traffic Data
-TEST_MODE_ENABLED = True
+TEST_MODE_ENABLED = False
 SAVE_IMAGES = False
 LOGGING_THROTTLE_FACTOR = 5  
 
@@ -129,7 +129,8 @@ class TLDetector(object):
         # if we have found a closest light to monitor, then determine the stop line position of this light
         if closest_light:
             self.process_count += 1
-            state = self.get_light_state(closest_light)
+            if self.process_count % 4 == 0:
+                state = self.get_light_state(closest_light)
             #if (self.process_count % LOGGING_THROTTLE_FACTOR) == 0:
             rospy.logwarn("DETECT: line_wp_idx={}, state={}".format(line_wp_idx, self.to_string(state)))
 

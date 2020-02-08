@@ -33,7 +33,7 @@ class TLClassifier(object):
             return TrafficLight.UNKNOWN
 
         classification = self.classifier.classify(cropped)
-        return DoubleStageClassifier.eval_color(classification)
+        return TLClassifier.eval_color(classification)
 
     @staticmethod
     def eval_color(classification):
@@ -55,25 +55,18 @@ class TLClassifier(object):
         :return: The resized cropped image or None if the conditions are not satisfied
         """
         shape = image.shape
+        print("shape:",shape)
         (left, right, top, bottom) = (box[0, 1] * shape[2], box[0, 3] * shape[2],
                                       box[0, 0] * shape[1], box[0, 2] * shape[1])
 
         # Assuming that crop_height > crop_width valid for tf_api and standard traffic lights
-        crop_height = int(bottom - top)
-        crop_width = int(right - left)
-
-        if 1.5 * crop_width < crop_height < 3.5 * crop_width:
-            center = (int(left) + int(right)) // 2
-            if (center - (crop_height // 2) < 0):
-                cropped = image[0, int(top): int(bottom), 0: crop_height, :]
-            elif (center + (crop_height // 2) > shape[2]):
-                cropped = image[0, int(top): int(bottom), shape[2] - crop_height: shape[2], :]
-            else:
-                cropped = image[0, int(top): int(bottom), center - (crop_height // 2): center + (crop_height // 2), :]
-            resized = cv2.resize(cropped, (50, 50), interpolation=cv2.INTER_CUBIC)
-            return resized[..., ::-1]
-        else:
-            return None
+        crop_height = int(bottom - right)
+        crop_width = int(top - left)
+        print(left,right,top, bottom)
+        cropped = image[int(top):int(top)+crop_height, int(left):int(left)+crop_width]
+        resized = cv2.resize(cropped, (50, 50), interpolation=cv2.INTER_CUBIC)
+        return resized[..., ::-1]
+        
 
 
 class Detector(object):
@@ -116,6 +109,7 @@ class Classifier(object):
             predictions = self.classification_model.predict(cropped)
 
         results = []
+        print( predictions)
         for i,p in enumerate(predictions):
             if np.max(p) > 0.9:
                 result = np.argmax(p)
